@@ -1,6 +1,5 @@
 # Out-of-Sight
- 
-## General Info
+
 A simple horror platformer that follows a little girl as she tries to escape a seemingly never-ending house of repeating hallways, memories, and maybe something a little sinister.
 I made a YouTube demo of the game! Click [here](https://youtu.be/wUkGteWnN54?si=GXYI7mDVulGaX-jH) for the video.
 
