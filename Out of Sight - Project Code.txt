@@ -1,0 +1,667 @@
+//All images are digitally illustrated by myself. Playstyle and artstyle are inspired by the video game Limbo by Playdead.
+
+// store images for quick load
+PImage[] walkCycle = new PImage[8];
+PImage[] crouchCycle = new PImage[4];
+
+// create images
+Image background, painting, currentKey, fade, character;
+
+// create buttons/effect areas
+EffectArea keyArea, startButton, helpButton, restartButton, returnMenuButton, doorArea;
+EffectArea drawerArea, paintingArea, paintingEyeArea, floorEyeArea;
+EffectArea inventoryArea, inventoryBackButton, inventorySearchBar;
+
+// text
+PFont title, info;
+String[] instructions = new String[] {"Instructions:", "Click on game elements to interact.", "Press 'e' to interact with doors.", "Press 'i' to open inventory.", "Use 'a' and 'd' to move left and right.", "Use 'w' to jump.", "Use 's' to crouch.", "DON'T CROSS THEIR LINE OF SIGHT."};
+
+// inventory
+ArrayList<String> inventory = new ArrayList<String>();
+String search;
+int itemIndex;
+
+// flow
+int sceneNum, keyLocation, speedY, frame;
+float timer;
+boolean facingRight, keyClicked, paintingOpen, drawerOpen, jump, crouch, onTable, move, inventoryOpen;
+
+
+void resetVariables(){
+  // load images
+  background = new Image("background_start.jpg", 900, 700, 0, 0);
+  painting = new Image("painting1.jpg", 220, 143, 338, 178);
+  currentKey = new Image("keyWhite.png", 100, 100, 400, 200);
+  fade = new Image("fade.jpg", 900, 700, 0, 0);
+  character = new Image(walkCycle[0], 150, 225, 50, 334);
+  
+  // load buttons/effect areas
+  keyArea = new EffectArea(currentKey.x, currentKey.y, currentKey.l, currentKey.h);
+  startButton = new EffectArea(273, 562, 352, 105);
+  helpButton = new EffectArea(795, 17, 90, 73);
+  restartButton = new EffectArea(780, 590, 120, 110);
+  returnMenuButton = new EffectArea(800, 24, 81, 71);
+  doorArea = new EffectArea(550, 0, 340, 700);
+  drawerArea = new EffectArea(400, 390, 90, 30);
+  paintingArea = new EffectArea(325, 158, 251, 169);
+  paintingEyeArea = new EffectArea(350, 0, 200, 700);
+  floorEyeArea = new EffectArea(400, 0, 100, 700);
+  inventoryArea = new EffectArea(225, 175, 450, 350);
+  inventoryBackButton = new EffectArea(inventoryArea.leftX + 20, inventoryArea.bottomY - 55, 75, 50);
+  inventorySearchBar = new EffectArea(inventoryArea.leftX + 25, inventoryArea.topY + 25, inventoryArea.L - 50, 50);
+  
+  // variables
+  sceneNum = 0;
+  keyLocation = 0;
+  speedY = 0;
+  frame = 0;
+  timer = 0;
+  facingRight = true;
+  keyClicked = false;
+  paintingOpen = false;
+  drawerOpen = false;
+  jump = false;
+  crouch = false;
+  onTable = false;
+  move = false;
+  
+  // inventory
+  inventory = new ArrayList<String>();
+  inventory.add("diary");
+  inventoryOpen = false;
+  search = "";
+  itemIndex = -2;
+  
+  // text
+  textAlign(LEFT, TOP);
+  
+} // end resetVariables
+
+
+void loadWalkCycle(){
+  walkCycle[0] = loadImage("GIRL_stationaryR.png");
+  walkCycle[1] = loadImage("GIRL_r1R.png");
+  walkCycle[2] = loadImage("GIRL_r2R.png");
+  walkCycle[3] = loadImage("GIRL_r3R.png");
+  walkCycle[4] = loadImage("GIRL_stationaryL.png");
+  walkCycle[5] = loadImage("GIRL_r1L.png");
+  walkCycle[6] = loadImage("GIRL_r2L.png");
+  walkCycle[7] = loadImage("GIRL_r3L.png");
+} // end loadWalkCycle
+
+
+void loadCrouchCycle(){
+  crouchCycle[0] = loadImage("GIRL_c2R.png");
+  crouchCycle[1] = loadImage("GIRL_c1R.png");
+  crouchCycle[2] = loadImage("GIRL_c2L.png");
+  crouchCycle[3] = loadImage("GIRL_c1L.png");
+} // end loadCrouchCycle
+
+
+public class EffectArea{
+  
+  public float leftX, topY, rightX, bottomY, L, H;
+  
+  public EffectArea(float x, float y, float l, float h){
+    leftX = x;
+    topY = y;
+    rightX = x + l;
+    bottomY = y + h;
+    L = l;
+    H = h;
+  } // end constructor
+  
+  public boolean insideArea(float x, float y, float l, float h){
+    if ((leftX < x && x < rightX && topY < y && y < bottomY) || (leftX < (x+l) && (x+l) < rightX && topY < (y+h) && (y+h) < bottomY))
+      return true;
+    return false;
+  } // return true if object (mouse or character) is within the effect area
+  
+  public void updateArea(float x, float y, float l, float h){
+    leftX = x;
+    topY = y;
+    rightX = x + l;
+    bottomY = y + h;
+  } // updates all values
+  
+} // end EffectArea class
+
+
+public class Image{
+  
+  public PImage image;
+  public float l, h;
+  public float x, y;
+  
+  public Image(String imageName, float initL, float initH){
+    image = loadImage(imageName);
+    l = initL;
+    h = initH;
+  } // end load new image
+  
+  public Image(PImage storedImage, float initL, float initH){
+    image = storedImage;
+    l = initL;
+    h = initH;
+  } // end load from stored image
+  
+  public Image(String imageName, float initL, float initH, float initX, float initY){
+    image = loadImage(imageName);
+    l = initL;
+    h = initH;
+    x = initX;
+    y = initY;
+  } // end overload with intial x, y value
+  
+  public Image(PImage storedImage, float initL, float initH, float initX, float initY){
+    image = storedImage;
+    l = initL;
+    h = initH;
+    x = initX;
+    y = initY;
+  } // end overload with intial x, y value from stored image
+  
+  public void changeImage(String imageName){
+    image = loadImage(imageName);
+  } // load new image by name
+  
+  public void changeImage(PImage newImage){
+    image = newImage;
+  } // switch image to stored image
+  
+  public void changeImage(EffectArea area, String imageName, float newL, float newH, float newX, float newY){
+    image = loadImage(imageName);
+    l = newL;
+    h = newH;
+    x = newX;
+    y = newY;
+    area.updateArea(x, y, l, h);
+  } // load new image by name and update dimensions
+  
+} // end Image class
+
+
+void running() {
+  if (facingRight == true) {
+    switch(frame) {
+    case 0:
+      character.changeImage(walkCycle[0]);
+      break;
+    case 10:
+      character.changeImage(walkCycle[1]);
+      break;
+    case 20:
+      character.changeImage(walkCycle[2]);
+      break;
+    case 30:
+      character.changeImage(walkCycle[3]);
+      break;
+    }
+  }
+  
+  else if (facingRight == false) {
+    switch(frame) {
+    case 0:
+      character.changeImage(walkCycle[4]);
+      break;
+    case 10:
+      character.changeImage(walkCycle[5]);
+      break;
+    case 20:
+      character.changeImage(walkCycle[6]);
+      break;
+    case 30:
+      character.changeImage(walkCycle[7]);
+      break;
+    }
+  }
+}//end of running function
+
+
+void crouching() {
+  if (crouch == true) {
+    if (facingRight == true) {
+      switch(frame) {
+      case 0:
+        character.changeImage(crouchCycle[0]);
+        break;
+      case 20:
+        character.changeImage(crouchCycle[1]);
+        break;
+      }
+    }
+    
+    if (facingRight == false) {
+      switch(frame) {
+      case 0:
+        character.changeImage(crouchCycle[2]);
+        break;
+      case 20:
+        character.changeImage(crouchCycle[3]);
+        break;
+      }
+    }
+  }
+}//end crouching
+
+
+void jumping() { // This method was written in collaboration with my teacher.
+  character.y += speedY;
+  if (jump == true) {
+    speedY += 4;
+  }
+  if (character.x>200 && character.x<540 && jump == true && sceneNum<7)
+    onTable = true;
+  if (speedY >= 40 && onTable == false) {
+    speedY = 0;
+    character.y = 334;
+    jump = false;
+  }
+  else if (onTable == true) {
+    character.y = 182;
+    if (character.x>540 || character.x<200) {
+      speedY += 2;
+      if (speedY >= 40) {
+        speedY = 0;
+        character.y = 334;
+        jump = false;
+        onTable = false;
+      }
+    }
+  }
+}//end jumping
+
+
+void movement() {
+  if (move == true) {
+  if (facingRight == true)
+    character.x += 5; 
+  if (facingRight == false)
+    character.x -= 5;
+  frame++;
+    if (frame == 40 && crouch == false) {
+      frame = 10;
+    } else if (frame == 40 && crouch == true) {
+      frame = 0;
+    }
+  }
+  if (crouch == false)
+    running();
+  crouching();
+  jumping();
+  
+  // LEFT BOUND
+  if (1 <= sceneNum && sceneNum <= 7 && character.x <= -15)
+    character.x = -15;
+      
+  // RIGHT BOUND
+  if (1 <= sceneNum && sceneNum <= 6 && character.x >= 770)
+    character.x = 770;
+  
+  // EYE PAINTING AND EYES ON FLOOR - game over
+  if ((sceneNum == 5 && !crouch && paintingEyeArea.insideArea(character.x, character.y, character.l, character.h)) || (sceneNum == 6 && !onTable && floorEyeArea.insideArea(character.x, character.y, character.l, character.h))){
+    sceneNum = 12;
+    background.changeImage("background7.jpg");
+    currentKey.changeImage(keyArea, "keyWhite.png", 1, 1, 900, 700);
+  }
+    
+  // EMPTY LOOP ROOMS RIGHT BOUND
+  if (7 <= sceneNum && sceneNum <= 10 && character.x > 900){
+    background.changeImage("background5.jpg");
+    character.x = -character.l + 100;
+    sceneNum++;
+  }
+  
+  // EMPTY LOOP ROOMS LEFT BOUND
+  if (8 <= sceneNum && sceneNum <= 11 && character.x < -character.l){
+    character.x = 800;
+    sceneNum--;
+    if (sceneNum == 10){
+      background.changeImage("background5.jpg");
+      currentKey.changeImage(keyArea, "keyWhite.png", 1, 1, 900, 700);
+    }
+  }
+  
+  // ALL EYES
+  if (sceneNum == 11 && !keyClicked){
+    currentKey.changeImage(keyArea, "keyWhite.png", 70, 70, 800, 455);
+    background.changeImage("background6.jpg");
+    if (character.x >= 110)
+      character.x = 110;
+  }
+} // end movement
+
+
+int binarySearch(ArrayList<String> arr, String s){
+  bubbleSort(arr);
+  
+  int lowerI = 0;
+  int higherI = arr.size() - 1;
+  
+  while(lowerI <= higherI){
+    int midI = (lowerI + higherI) / 2;
+    String e = arr.get(midI);
+    
+    if (e.equalsIgnoreCase(s))
+      return midI;
+      
+    else if (e.compareToIgnoreCase(s) < 0)
+      lowerI = midI + 1;
+      
+    else
+      higherI = midI - 1;
+  }
+      
+  return -1; // not found
+} // end binarySearch
+
+
+void bubbleSort(ArrayList<String> arr){
+  boolean swap = true;
+  
+  while(swap){
+    swap = false;
+    
+    for (int i = 0; i < arr.size() - 1; i++){
+      if (arr.get(i).compareToIgnoreCase(arr.get(i+1)) > 0){
+        String temp = arr.get(i);
+        arr.set(i, arr.get(i+1));
+        arr.set(i+1, temp);
+        swap = true;
+      }
+    }
+  }
+} // end bubbleSort
+
+
+void drawScene(){
+  image(background.image, background.x, background.y, background.l, background.h);
+  
+  if (sceneNum == -1)
+    drawInstructions();
+  
+  if (keyClicked)
+    image(currentKey.image, currentKey.x, currentKey.y, currentKey.l, currentKey.h);
+  
+  // draw painting
+  if (!paintingOpen && ((1 <= sceneNum && sceneNum <= 3) || (5 <= sceneNum && sceneNum <= 6)))
+    image(painting.image, painting.x, painting.y);
+    
+  // key behind painting
+  if (paintingOpen && 1 <= sceneNum && sceneNum <= 2)
+    image(currentKey.image, currentKey.x, currentKey.y, currentKey.l, currentKey.h);
+  
+  // cover drawer
+  if (drawerOpen) {
+    fill(0);
+    noStroke();
+    rect(400, 390, 90, 30);
+    
+    // key in drawer
+    if (!keyClicked && 3 <= sceneNum && sceneNum <= 4)
+      image(currentKey.image, currentKey.x, currentKey.y, currentKey.l, currentKey.h);
+  }
+  
+  if (5 <= sceneNum && sceneNum <= 11)
+    image(currentKey.image, currentKey.x, currentKey.y, currentKey.l, currentKey.h);
+  
+  // draw character
+  if (1 <= sceneNum && sceneNum <= 11){
+    image(character.image, character.x, character.y, character.l, character.h);
+    movement();
+  }
+    
+  if (sceneNum == 12){
+    timer += 0.1;
+    if (timer >= 10) {
+      sceneNum++;
+      background.changeImage("background_dead.jpg");
+    }
+  }
+  
+  if (inventoryOpen && 1 <= sceneNum && sceneNum <= 11)
+    drawInventory();
+  
+} // end drawScene
+
+
+void drawInstructions(){
+  fill(234);
+  textFont(title);
+  text(instructions[0], 35, 70);
+  textFont(info);
+  for (int i = 1; i < instructions.length; i++)
+    text(instructions[i], 35, 150 + (45 * (i-1)));
+} // end drawInstructions
+
+
+void drawInventory(){
+  textFont(info);
+  
+  fill(234);
+  rect(inventoryArea.leftX, inventoryArea.topY, inventoryArea.L, inventoryArea.H);
+  
+  fill(0);
+  rect(inventorySearchBar.leftX, inventorySearchBar.topY, inventorySearchBar.L, inventorySearchBar.H);
+  
+  fill(234);
+  textAlign(CENTER, CENTER);
+  textSize(30);
+  if (search == "")
+    text("Search item", 450, inventorySearchBar.topY + 25);
+  else
+    text(search, 450, inventorySearchBar.topY + 25);
+  
+  fill(0);
+  textSize(20);
+  textAlign(LEFT, TOP);
+  if (itemIndex != -2){
+    if (itemIndex == -1)
+      text("Item not found. Try again.", inventorySearchBar.leftX, inventorySearchBar.topY + 75);
+    
+    else if (search.equalsIgnoreCase("diary"))
+      diary();
+    
+    else if (search.equalsIgnoreCase("key"))
+      text("A very familiar, very plain key. Where have you seen it before?", inventorySearchBar.leftX, inventorySearchBar.topY + 75, inventorySearchBar.L, 400);
+  }
+  
+  else{
+    for(int i = 0; i < inventory.size(); i++)
+      text(inventory.get(i), inventorySearchBar.leftX, (inventorySearchBar.topY + 75 + (i*30)));
+  }
+  
+  // back button
+  text("Back", inventoryBackButton.leftX + 5, inventoryBackButton.topY + 5);
+  
+} // end drawInventory
+
+
+void diary(){
+  float x = inventorySearchBar.leftX, y = inventorySearchBar.topY + 75;
+  float l = inventorySearchBar.L, h = 400;
+  if (sceneNum == 1)
+    text("Dear diary,\nToday they bought me a new dress. I spin for them as they clap and sing praises. Thank you. Thank you.", x, y, l, h);
+  else if (sceneNum == 2)
+    text("Dear diary,\nToday I found a wounded bird on my doorstep. I took it inside. It is a beautiful thing.", x, y, l, h);
+  else if (sceneNum == 3)
+    text("Dear diary,\nThey like to watch me feed the bird. They watch as I clean its cage. I did it wrong. I need to do better.", x, y, l, h);
+  else if (sceneNum == 4)
+    text("Dear diary,\nThe bird's eyes are pitch black. Its wing is healed. Sometimes I hear them beating against the cage.", x, y, l, h);
+  else if (sceneNum == 5)
+    text("Dear diary,\nIt does not try to fly anymore. It sits on its perch and follows me with its eyes. I think it wants to leave.", x, y, l, h);
+  else if (sceneNum == 6)
+    text("Dear diary,\nIt is my fault. It ⬜⬜ my fault. ⬜⬜ ⬜⬜ my fault. ⬜⬜ ⬜⬜ ⬜⬜ fault. ⬜⬜ ⬜⬜ ⬜⬜ ⬜⬜⬜⬜⬜", x, y, l, h);
+  else if (sceneNum == 7)
+    text("Dear diary,\nThe clock is so loud. THEIR voices are so loud. THEY are always watching.", x, y, l, h);
+  else if (sceneNum == 8)
+    text("THEY took my door off its hinges. When I lie in bed at night, THEY are in the hallway. When I close my eyes, THEY are on the inside of my eyelids.", x, y, l, h);
+  else if (sceneNum == 9)
+    text("I remember my ⬜⬜⬜⬜. My ⬜⬜⬜⬜ is ⬜⬜⬜⬜⬜⬜⬜⬜⬜. Will THEY take my ⬜⬜⬜⬜ too?", x, y, l, h);
+  else if (sceneNum == 10)
+    text("⬜⬜⬜⬜⬜ ⬜⬜ ⬜⬜⬜ ⬜⬜⬜⬜ ⬜⬜ ⬜⬜⬜, ⬜⬜⬜⬜ ⬜⬜ ⬜⬜⬜ ⬜⬜⬜⬜ ⬜⬜ ⬜⬜⬜⬜⬜. ⬜⬜⬜⬜⬜⬜⬜⬜ ⬜⬜ ⬜⬜⬜ ⬜⬜⬜⬜, ⬜⬜⬜⬜⬜⬜⬜ ⬜⬜⬜⬜⬜ ⬜⬜⬜.", x, y, l, h);
+  else if (sceneNum == 11){
+    for (int i = 0; i < 7; i++)
+      text("LOOK AWAY LOOK AWAY LOOK AWAY LOOK AWAY", x, (y + (i*25)));
+  }
+  else
+    text("", 0, 0);
+} // end diary
+
+
+void mousePressed() {
+  // START SCREEN
+  if (sceneNum == 0) {
+    if (startButton.insideArea(mouseX, mouseY, 1, 1)) {
+      sceneNum = 1;
+      background.changeImage("background1.jpg");
+    }
+    if (helpButton.insideArea(mouseX, mouseY, 1, 1)){
+      sceneNum = -1;
+      background.changeImage("background_help.jpg");
+    }
+  }
+  
+  // INVENTORY
+  else if (inventoryOpen){
+    if (inventoryBackButton.insideArea(mouseX, mouseY, 1, 1)){
+      search = "";
+      itemIndex = -2;
+      inventoryOpen = false;
+    }
+    else if (inventorySearchBar.insideArea(mouseX, mouseY, 1, 1)){
+      search = "";
+      itemIndex = -2;
+    }
+  }
+  
+  // GET KEY
+  else if ((keyArea.insideArea(mouseX, mouseY, 1, 1)) && ((paintingOpen && 1 <= sceneNum && sceneNum <= 2) || (drawerOpen && 3 <= sceneNum && sceneNum <= 4) || ((5 <= sceneNum && sceneNum <= 6) || sceneNum == 11))){
+    keyClicked = true;
+    inventory.add("key");
+    if (sceneNum == 11)
+      currentKey.changeImage(keyArea, "keyBlack.png", 1, 1, 900, 700);
+    else
+      currentKey.changeImage(keyArea, "keyBlack.png", 100, 100, 790, 590);
+  }
+  
+  // PAINTING
+  else if (!paintingOpen && 1 <= sceneNum && sceneNum <= 3 && paintingArea.insideArea(mouseX, mouseY, 1, 1))
+    paintingOpen = true;
+  
+  // DRAWER
+  else if (!drawerOpen && 1 <= sceneNum && sceneNum <= 6 && drawerArea.insideArea(mouseX, mouseY, 1, 1))
+    drawerOpen = true;
+  
+  // DEATH SCREEN
+  else if (restartButton.insideArea(mouseX, mouseY, 1, 1) && sceneNum == 13)
+    resetVariables();
+  
+  // HELP SCREEN
+  else if (returnMenuButton.insideArea(mouseX, mouseY, 1, 1) && sceneNum == -1){
+    println("back");
+    resetVariables();
+  }
+
+}//end mousePressed
+
+
+void keyPressed() {
+  // IN INVENTORY - freeze scene
+  if (inventoryOpen){
+    if (keyCode == ENTER){
+      itemIndex = binarySearch(inventory, search);
+    }
+    else if (keyCode == BACKSPACE && !search.equals(""))
+      search = search.substring(0, search.length() - 1);
+    
+    else if (key != CODED && keyCode != BACKSPACE)
+      search = search + key;
+  }
+  
+  // NOT IN INVENTORY
+  else{
+    if (key == 'i' && 1 <= sceneNum && sceneNum <= 11)
+      inventoryOpen = true;
+    
+    if (key == 'd') { // right
+      facingRight = true;
+      move = true;
+    } 
+    
+    else if (key == 'a') { // left
+      facingRight = false;
+      move = true;
+      if (sceneNum == 11 && keyClicked){
+        sceneNum = 12;
+        background.changeImage("background7.jpg");
+      }
+    } 
+    
+    else if (keyClicked && key == 'e' && doorArea.insideArea(character.x, character.y, character.l, character.h)) { // open door
+      sceneNum++;
+      character.x = 50;
+      keyClicked = false;
+      inventory.remove(binarySearch(inventory, "key"));
+      paintingOpen = false;
+      drawerOpen = false;
+      
+      if (1 <= sceneNum && sceneNum <= 2){ // normal
+        background.changeImage("background2.jpg");
+        currentKey.changeImage(keyArea, "keyWhite.png", 100, 100, 400, 200);
+      }
+      
+      else if (3 <= sceneNum && sceneNum <= 4) // key in drawer
+        currentKey.changeImage(keyArea, "keyWhite.png", 30, 30, 430, 390);
+      
+      else if (sceneNum == 5){ // eye painting
+        currentKey.changeImage(keyArea, "keyWhite.png", 60, 60, 350, 445);
+        painting.changeImage("painting2.jpg");
+      }
+      
+      else if (sceneNum == 6){ // eyes on floor
+        background.changeImage("background3.jpg");
+        currentKey.changeImage(keyArea, "keyWhite.png", 60, 60, 20, 80);
+        painting.changeImage("painting3.jpg");
+      }
+      
+      else if (sceneNum == 7){ // no key
+        background.changeImage("background4.jpg");
+        currentKey.changeImage(keyArea, "keyWhite.png", 1, 1, 900, 700);
+      }
+    }
+    
+    if (key == 'w') {
+      if (jump == false) {
+        jump = true;
+        speedY = -40;
+        crouch = false;
+      }
+    }
+      
+    else if (key == 's')
+      crouch = !crouch;
+  }
+} // end keyPressed
+
+
+void keyReleased() {
+  frame = 0;
+  if (key == 'd' || key == 'a')
+    move = false;
+} // end keyReleased
+
+
+void setup(){
+  size(900, 700);
+  loadWalkCycle();
+  loadCrouchCycle();
+  resetVariables();
+  title = createFont("Papyrus", 50);
+  info = createFont("Fangsong", 30);
+} // end setup
+
+
+void draw(){
+  drawScene();
+} // end draw
